@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/pub_provider.dart';
 import '../../providers/user_provider.dart';
-import '../../models/pub_model.dart'; // No need to hide Table anymore
+import '../../models/pub_model.dart';
+import '../../services/api_service.dart'; // Add this import
 import '../../config/app_config.dart';
 
 class PubDetailScreen extends StatefulWidget {
@@ -17,6 +18,7 @@ class PubDetailScreen extends StatefulWidget {
 class _PubDetailScreenState extends State<PubDetailScreen> {
   bool _isFavorite = false;
   int _selectedTab = 0;
+  final ApiService _apiService = ApiService();
 
   @override
   void initState() {
@@ -26,6 +28,97 @@ class _PubDetailScreenState extends State<PubDetailScreen> {
       _checkIfFavorite();
     });
   }
+
+  void _showRatingDialog(Pub pub) {
+    double rating = 0;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Rate this Venue'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'How was your experience at ${pub.name}?',
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(5, (index) {
+                  return IconButton(
+                    icon: Icon(
+                      index < rating ? Icons.star : Icons.star_border,
+                      color: Colors.amber,
+                      size: 40,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        rating = index + 1.0;
+                      });
+                    },
+                  );
+                }),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                rating > 0 ? '${rating.toInt()} Star${rating > 1 ? 's' : ''}' : 'Tap to rate',
+                style: TextStyle(
+                  color: Colors.grey[600],
+                  fontSize: 16,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: rating == 0
+                  ? null
+                  : () async {
+                Navigator.pop(context);
+
+                // Submit rating
+                try {
+                  final response = await _apiService.post(
+                    '/pubs/${pub.id}/rate',
+                    {'rating': rating},
+                  );
+
+                  if (response['success'] == true) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Thank you for your rating!'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                    // Refresh pub details
+                    if (mounted) {
+                      context.read<PubProvider>().fetchPubById(pub.id);
+                    }
+                  }
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Error: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              },
+              child: const Text('Submit'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
 
   void _checkIfFavorite() {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
@@ -95,6 +188,8 @@ class _PubDetailScreenState extends State<PubDetailScreen> {
                 ],
               ),
             ),
+
+
             actions: [
               IconButton(
                 icon: Icon(

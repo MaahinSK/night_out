@@ -38,6 +38,11 @@ const createPub = async (req, res) => {
       ageRestriction: req.body.ageRestriction || 18,
       isActive: req.body.isActive !== undefined ? req.body.isActive : true,
       featured: req.body.featured || false,
+      images: req.body.images || [],
+      ratings: {
+        average: req.body.ratings?.average || 0,
+        count: req.body.ratings?.count || 0
+      },
       // Set default opening hours
       openingHours: req.body.openingHours || {
         monday: { open: '17:00', close: '02:00', isOpen: true },
@@ -200,11 +205,49 @@ const searchPubs = async (req, res) => {
   }
 };
 
+// @desc    Rate a pub
+// @route   POST /api/pubs/:id/rate
+// @access  Private
+const ratePub = async (req, res) => {
+  try {
+    const { rating } = req.body;
+    const pub = await Pub.findById(req.params.id);
+
+    if (!pub) {
+      return res.status(404).json({ message: 'Pub not found' });
+    }
+
+    // Initialize ratings if they don't exist
+    if (!pub.ratings) {
+      pub.ratings = { average: 0, count: 0 };
+    }
+
+    // Update rating
+    const newCount = pub.ratings.count + 1;
+    const newAverage = ((pub.ratings.average * pub.ratings.count) + rating) / newCount;
+
+    pub.ratings.average = newAverage;
+    pub.ratings.count = newCount;
+
+    await pub.save();
+
+    res.json({
+      success: true,
+      ratings: pub.ratings
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+// Export all functions
 module.exports = {
   getPubs,
   getPubById,
   createPub,
   updatePub,
   deletePub,
-  searchPubs
+  searchPubs,
+  ratePub
 };

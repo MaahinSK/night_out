@@ -10,7 +10,8 @@ const {
 } = require('../controllers/userController');
 const { protect } = require('../middleware/authMiddleware');
 
-router.use(protect); // All routes require authentication
+// All routes require authentication
+router.use(protect);
 
 router.put('/profile', updateProfile);
 router.put('/change-password', changePassword);

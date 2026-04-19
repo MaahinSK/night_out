@@ -6,7 +6,8 @@ const {
   createPub,
   updatePub,
   deletePub,
-  searchPubs
+  searchPubs,
+  ratePub
 } = require('../controllers/pubController');
 const { protect, authorize } = require('../middleware/authMiddleware');
 
@@ -14,6 +15,9 @@ const { protect, authorize } = require('../middleware/authMiddleware');
 router.get('/', getPubs);
 router.get('/search/:keyword', searchPubs);
 router.get('/:id', getPubById);
+
+// Private routes (require authentication)
+router.post('/:id/rate', protect, ratePub);
 
 // Admin routes
 router.post('/', protect, authorize('admin'), createPub);

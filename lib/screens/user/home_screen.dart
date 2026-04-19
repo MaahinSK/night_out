@@ -24,59 +24,14 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<PubProvider>().fetchPubs();
-      context.read<PubProvider>().fetchPubs(featured: true);
+      _loadData();
     });
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final screens = [
-      _buildDiscoverTab(),
-      _buildSearchTab(),
-      const FavoritesScreen(),
-      const BookingsScreen(),
-      const ProfileScreen(),
-    ];
-
-    return Scaffold(
-      body: screens[_selectedIndex],
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _selectedIndex,
-        onDestinationSelected: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
-        },
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.explore_outlined),
-            selectedIcon: Icon(Icons.explore),
-            label: 'Discover',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.search_outlined),
-            selectedIcon: Icon(Icons.search),
-            label: 'Search',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.favorite_outline),
-            selectedIcon: Icon(Icons.favorite),
-            label: 'Favorites',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.book_online_outlined),
-            selectedIcon: Icon(Icons.book_online),
-            label: 'Bookings',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person),
-            label: 'Profile',
-          ),
-        ],
-      ),
-    );
+  void _loadData() async {
+    final pubProvider = context.read<PubProvider>();
+    await pubProvider.fetchPubs();
+    await pubProvider.fetchPubs(featured: true);
   }
 
   Widget _buildDiscoverTab() {
@@ -88,10 +43,15 @@ class _HomeScreenState extends State<HomeScreen> {
         title: const Text('Night Out'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.notifications_outlined),
-            onPressed: () {
-              // Navigate to notifications
+            icon: const Icon(Icons.refresh),
+            onPressed: () async {
+              await pubProvider.fetchPubs();
+              await pubProvider.fetchPubs(featured: true);
             },
+          ),
+          IconButton(
+            icon: const Icon(Icons.notifications_outlined),
+            onPressed: () {},
           ),
           PopupMenuButton<String>(
             itemBuilder: (context) => [
@@ -182,7 +142,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               SliverToBoxAdapter(
                 child: SizedBox(
-                  height: 250,
+                  height: 280,
                   child: ListView.builder(
                     scrollDirection: Axis.horizontal,
                     padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -206,20 +166,105 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
             ),
-            SliverList(
-              delegate: SliverChildBuilderDelegate(
-                    (context, index) {
-                  final pub = pubProvider.pubs[index];
-                  return _buildPubListItem(pub);
-                },
-                childCount: pubProvider.pubs.length,
+
+            if (pubProvider.pubs.isEmpty)
+              SliverToBoxAdapter(
+                child: Center(
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 48),
+                      Icon(
+                        Icons.nightlife_outlined,
+                        size: 64,
+                        color: Colors.grey[400],
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'No pubs found',
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 18,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Pull down to refresh',
+                        style: TextStyle(
+                          color: Colors.grey[500],
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            else
+              SliverList(
+                delegate: SliverChildBuilderDelegate(
+                      (context, index) {
+                    final pub = pubProvider.pubs[index];
+                    return _buildPubListItem(pub);
+                  },
+                  childCount: pubProvider.pubs.length,
+                ),
               ),
-            ),
           ],
         ),
       ),
     );
   }
+
+  @override
+  Widget build(BuildContext context) {
+    final screens = [
+      _buildDiscoverTab(),
+      _buildSearchTab(),
+      const FavoritesScreen(),
+      const BookingsScreen(),
+      const ProfileScreen(),
+    ];
+
+    return Scaffold(
+      body: screens[_selectedIndex],
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _selectedIndex,
+        onDestinationSelected: (index) {
+          setState(() {
+            _selectedIndex = index;
+          });
+        },
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.explore_outlined),
+            selectedIcon: Icon(Icons.explore),
+            label: 'Discover',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.search_outlined),
+            selectedIcon: Icon(Icons.search),
+            label: 'Search',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.favorite_outline),
+            selectedIcon: Icon(Icons.favorite),
+            label: 'Favorites',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.book_online_outlined),
+            selectedIcon: Icon(Icons.book_online),
+            label: 'Bookings',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.person_outline),
+            selectedIcon: Icon(Icons.person),
+            label: 'Profile',
+          ),
+        ],
+      ),
+    );
+  }
+
+
 
   Widget _buildSearchTab() {
     final pubProvider = Provider.of<PubProvider>(context);

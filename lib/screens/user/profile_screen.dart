@@ -37,6 +37,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _phoneController.text = authProvider.user?.phone ?? '';
   }
 
+
+
   Future<void> _updateProfile() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -46,15 +48,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final response = await _apiService.put(
         AppConfig.updateProfileEndpoint,
         {
-          'name': _nameController.text,
-          'phone': _phoneController.text,
+          'name': _nameController.text.trim(),
+          'phone': _phoneController.text.trim(),
         },
       );
+
+      print('Update profile response: $response');
 
       if (response['success'] == true) {
         // Update local user data
         final authProvider = Provider.of<AuthProvider>(context, listen: false);
-        await _apiService.storeUser(response['user']);
+
+        // Create updated user object
+        final updatedUser = {
+          'id': authProvider.user?.id,
+          'name': response['user']['name'] ?? _nameController.text.trim(),
+          'email': response['user']['email'] ?? authProvider.user?.email,
+          'phone': response['user']['phone'] ?? _phoneController.text.trim(),
+          'role': response['user']['role'] ?? authProvider.user?.role,
+          'favorites': response['user']['favorites'] ?? authProvider.user?.favorites,
+        };
+
+        // Store updated user data
+        await _apiService.storeUser(updatedUser);
+
+        // Force refresh the auth provider
+        await authProvider.refreshUser();
+
+        if (!mounted) return;
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -64,8 +85,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
         );
 
         setState(() => _isEditing = false);
+      } else {
+        throw Exception(response['message'] ?? 'Update failed');
       }
     } catch (e) {
+      print('Update profile error: $e');
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error: $e'),

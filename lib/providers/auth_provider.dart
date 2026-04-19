@@ -143,6 +143,21 @@ class AuthProvider with ChangeNotifier {
     return false;
   }
 
+  // Refresh user data from storage
+  Future<void> refreshUser() async {
+    try {
+      final storedUser = await _apiService.getStoredUser();
+      if (storedUser != null) {
+        _user = User.fromJson(storedUser);
+        notifyListeners();
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error refreshing user: $e');
+      }
+    }
+  }
+
   void _setLoading(bool value) {
     _isLoading = value;
     notifyListeners();

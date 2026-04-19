@@ -10,6 +10,445 @@ class ManagePubsScreen extends StatefulWidget {
   State<ManagePubsScreen> createState() => _ManagePubsScreenState();
 }
 
+class _PubFormDialog extends StatefulWidget {
+  final Pub? pub;
+
+  const _PubFormDialog({this.pub});
+
+  @override
+  State<_PubFormDialog> createState() => _PubFormDialogState();
+}
+
+class _PubFormDialogState extends State<_PubFormDialog> {
+  late TextEditingController nameController;
+  late TextEditingController descriptionController;
+  late TextEditingController cityController;
+  late TextEditingController streetController;
+  late TextEditingController entryFeeController;
+  late TextEditingController capacityController;
+  late TextEditingController phoneController;
+  late TextEditingController emailController;
+  late TextEditingController websiteController;
+  late TextEditingController dressCodeController;
+  late TextEditingController imageUrlController;
+
+  List<String> amenities = ['WiFi', 'Parking'];
+  List<String> musicGenres = ['Pop', 'Electronic'];
+  bool isActive = true;
+  bool featured = false;
+  int currentStep = 0;
+  bool isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    nameController = TextEditingController(text: widget.pub?.name);
+    descriptionController = TextEditingController(text: widget.pub?.description);
+    cityController = TextEditingController(text: widget.pub?.address.city);
+    streetController = TextEditingController(text: widget.pub?.address.street);
+    entryFeeController = TextEditingController(
+      text: widget.pub?.pricing.entryFee.toString() ?? '20',
+    );
+    capacityController = TextEditingController(
+      text: widget.pub?.capacity.total.toString() ?? '100',
+    );
+    phoneController = TextEditingController(text: widget.pub?.contactInfo.phone);
+    emailController = TextEditingController(text: widget.pub?.contactInfo.email);
+    websiteController = TextEditingController(text: widget.pub?.contactInfo.website);
+    dressCodeController = TextEditingController(text: widget.pub?.dressCode ?? 'Smart Casual');
+    imageUrlController = TextEditingController();
+
+    amenities = List.from(widget.pub?.amenities ?? ['WiFi', 'Parking']);
+    musicGenres = List.from(widget.pub?.musicGenre ?? ['Pop', 'Electronic']);
+    isActive = widget.pub?.isActive ?? true;
+    featured = widget.pub?.featured ?? false;
+  }
+
+  @override
+  void dispose() {
+    nameController.dispose();
+    descriptionController.dispose();
+    cityController.dispose();
+    streetController.dispose();
+    entryFeeController.dispose();
+    capacityController.dispose();
+    phoneController.dispose();
+    emailController.dispose();
+    websiteController.dispose();
+    dressCodeController.dispose();
+    imageUrlController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submitPub() async {
+    if (nameController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Pub name is required'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (cityController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('City is required'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    setState(() => isLoading = true);
+
+    final pubData = {
+      'name': nameController.text.trim(),
+      'description': descriptionController.text.trim(),
+      'address': {
+        'street': streetController.text.trim(),
+        'city': cityController.text.trim(),
+        'state': '',
+        'zipCode': '',
+        'country': 'USA',
+      },
+      'contactInfo': {
+        'phone': phoneController.text.trim(),
+        'email': emailController.text.trim(),
+        'website': websiteController.text.trim(),
+      },
+      'pricing': {
+        'entryFee': double.tryParse(entryFeeController.text) ?? 20.0,
+        'averageDrinkPrice': 10.0,
+      },
+      'capacity': {
+        'total': int.tryParse(capacityController.text) ?? 100,
+        'current': widget.pub?.capacity.current ?? 0,
+      },
+      'amenities': amenities,
+      'musicGenre': musicGenres,
+      'dressCode': dressCodeController.text.trim(),
+      'ageRestriction': 21,
+      'isActive': isActive,
+      'featured': featured,
+      'ratings': {
+        'average': widget.pub?.ratings.average ?? 0,
+        'count': widget.pub?.ratings.count ?? 0,
+      },
+    };
+
+    if (imageUrlController.text.isNotEmpty) {
+      pubData['images'] = [
+        {
+          'url': imageUrlController.text.trim(),
+          'caption': nameController.text.trim(),
+          'isPrimary': true,
+        }
+      ];
+    }
+
+    try {
+      final pubProvider = Provider.of<PubProvider>(
+        context,
+        listen: false,
+      );
+
+      bool success;
+      if (widget.pub == null) {
+        success = await pubProvider.createPub(pubData);
+      } else {
+        success = await pubProvider.updatePub(widget.pub!.id, pubData);
+      }
+
+      if (!mounted) return;
+
+      setState(() => isLoading = false);
+
+      if (success) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              widget.pub == null
+                  ? 'Pub created successfully!'
+                  : 'Pub updated successfully!',
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              pubProvider.error ?? 'Operation failed. Please try again.',
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      setState(() => isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Row(
+        children: [
+          Text(widget.pub == null ? 'Add New Pub' : 'Edit Pub'),
+          const Spacer(),
+          if (isLoading)
+            const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+        ],
+      ),
+      content: Container(
+        width: 600,
+        height: 500,
+        padding: const EdgeInsets.all(8),
+        child: Stepper(
+          currentStep: currentStep,
+          onStepContinue: () {
+            if (currentStep < 3) {
+              setState(() => currentStep++);
+            } else {
+              _submitPub();
+            }
+          },
+          onStepCancel: () {
+            if (currentStep > 0) {
+              setState(() => currentStep--);
+            }
+          },
+          controlsBuilder: (context, details) {
+            return Row(
+              children: [
+                ElevatedButton(
+                  onPressed: isLoading ? null : details.onStepContinue,
+                  child: Text(currentStep == 3 ? 'Save Pub' : 'Next'),
+                ),
+                const SizedBox(width: 12),
+                if (currentStep > 0)
+                  TextButton(
+                    onPressed: isLoading ? null : details.onStepCancel,
+                    child: const Text('Back'),
+                  ),
+                const Spacer(),
+                TextButton(
+                  onPressed: isLoading ? null : () => Navigator.pop(context),
+                  child: const Text('Cancel'),
+                ),
+              ],
+            );
+          },
+          steps: [
+            Step(
+              title: const Text('Basic Info'),
+              content: Column(
+                children: [
+                  TextField(
+                    controller: nameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Pub Name *',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: descriptionController,
+                    maxLines: 3,
+                    decoration: const InputDecoration(
+                      labelText: 'Description',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: dressCodeController,
+                    decoration: const InputDecoration(
+                      labelText: 'Dress Code',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Step(
+              title: const Text('Location & Contact'),
+              content: Column(
+                children: [
+                  TextField(
+                    controller: streetController,
+                    decoration: const InputDecoration(
+                      labelText: 'Street Address',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: cityController,
+                    decoration: const InputDecoration(
+                      labelText: 'City *',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: phoneController,
+                    decoration: const InputDecoration(
+                      labelText: 'Phone',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: emailController,
+                    decoration: const InputDecoration(
+                      labelText: 'Email',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: websiteController,
+                    decoration: const InputDecoration(
+                      labelText: 'Website',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Step(
+              title: const Text('Pricing & Capacity'),
+              content: Column(
+                children: [
+                  TextField(
+                    controller: entryFeeController,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Entry Fee (\$)',
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.attach_money),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: capacityController,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Total Capacity',
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.people),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: imageUrlController,
+                    decoration: const InputDecoration(
+                      labelText: 'Main Image URL (optional)',
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.image),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: CheckboxListTile(
+                          title: const Text('Active'),
+                          value: isActive,
+                          onChanged: (value) {
+                            setState(() => isActive = value!);
+                          },
+                          controlAffinity: ListTileControlAffinity.leading,
+                        ),
+                      ),
+                      Expanded(
+                        child: CheckboxListTile(
+                          title: const Text('Featured'),
+                          value: featured,
+                          onChanged: (value) {
+                            setState(() => featured = value!);
+                          },
+                          controlAffinity: ListTileControlAffinity.leading,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            Step(
+              title: const Text('Review'),
+              content: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildReviewItem('Name', nameController.text),
+                  const Divider(),
+                  _buildReviewItem('Description', descriptionController.text),
+                  const Divider(),
+                  _buildReviewItem('Address', '${streetController.text}, ${cityController.text}'),
+                  const Divider(),
+                  _buildReviewItem('Contact', phoneController.text),
+                  const Divider(),
+                  _buildReviewItem('Entry Fee', '\$${entryFeeController.text}'),
+                  const Divider(),
+                  _buildReviewItem('Capacity', '${capacityController.text} people'),
+                  const Divider(),
+                  _buildReviewItem('Status', isActive ? 'Active' : 'Inactive'),
+                  const Divider(),
+                  _buildReviewItem('Featured', featured ? 'Yes' : 'No'),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildReviewItem(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 100,
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.grey,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value.isNotEmpty ? value : 'Not provided',
+              style: TextStyle(
+                color: value.isNotEmpty ? Colors.black : Colors.grey,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _ManagePubsScreenState extends State<ManagePubsScreen> {
   final _searchController = TextEditingController();
 
@@ -267,219 +706,17 @@ class _ManagePubsScreenState extends State<ManagePubsScreen> {
   }
 
   void _showPubDialog({Pub? pub}) {
-    final nameController = TextEditingController(text: pub?.name);
-    final descriptionController = TextEditingController(text: pub?.description);
-    final cityController = TextEditingController(text: pub?.address.city);
-    final streetController = TextEditingController(text: pub?.address.street);
-    final entryFeeController = TextEditingController(
-      text: pub?.pricing.entryFee.toString() ?? '20',
-    );
-    final capacityController = TextEditingController(
-      text: pub?.capacity.total.toString() ?? '100',
-    );
-    final phoneController = TextEditingController(text: pub?.contactInfo.phone);
-
-    bool isLoading = false;
-
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: Text(pub == null ? 'Add New Pub' : 'Edit Pub'),
-          content: SingleChildScrollView(
-            child: Container(
-              width: 500,
-              padding: const EdgeInsets.all(8),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: nameController,
-                    decoration: const InputDecoration(
-                      labelText: 'Pub Name *',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: descriptionController,
-                    maxLines: 3,
-                    decoration: const InputDecoration(
-                      labelText: 'Description',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: streetController,
-                    decoration: const InputDecoration(
-                      labelText: 'Street Address',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: cityController,
-                    decoration: const InputDecoration(
-                      labelText: 'City *',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: phoneController,
-                    decoration: const InputDecoration(
-                      labelText: 'Phone',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: entryFeeController,
-                          keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(
-                            labelText: 'Entry Fee (\$)',
-                            border: OutlineInputBorder(),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: TextField(
-                          controller: capacityController,
-                          keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(
-                            labelText: 'Capacity',
-                            border: OutlineInputBorder(),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  if (isLoading) ...[
-                    const SizedBox(height: 16),
-                    const Center(child: CircularProgressIndicator()),
-                  ],
-                ],
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: isLoading ? null : () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: isLoading
-                  ? null
-                  : () async {
-                // Validate
-                if (nameController.text.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Pub name is required'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                  return;
-                }
-
-                if (cityController.text.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('City is required'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                  return;
-                }
-
-                setState(() => isLoading = true);
-
-                final pubData = {
-                  'name': nameController.text.trim(),
-                  'description': descriptionController.text.trim(),
-                  'address': {
-                    'street': streetController.text.trim(),
-                    'city': cityController.text.trim(),
-                    'state': '',
-                    'zipCode': '',
-                    'country': 'USA',
-                  },
-                  'contactInfo': {
-                    'phone': phoneController.text.trim(),
-                    'email': '',
-                    'website': '',
-                  },
-                  'pricing': {
-                    'entryFee': double.tryParse(entryFeeController.text) ?? 20.0,
-                    'averageDrinkPrice': 10.0,
-                  },
-                  'capacity': {
-                    'total': int.tryParse(capacityController.text) ?? 100,
-                    'current': 0,
-                  },
-                  'amenities': ['WiFi', 'Parking', 'VIP Area'],
-                  'musicGenre': ['Pop', 'Electronic', 'Hip Hop'],
-                  'dressCode': 'Smart Casual',
-                  'ageRestriction': 21,
-                  'isActive': true,
-                  'featured': false,
-                };
-
-                print('Creating pub with data: $pubData');
-
-                final pubProvider = Provider.of<PubProvider>(
-                  context,
-                  listen: false,
-                );
-
-                bool success;
-                if (pub == null) {
-                  success = await pubProvider.createPub(pubData);
-                } else {
-                  success = await pubProvider.updatePub(pub.id, pubData);
-                }
-
-                if (!context.mounted) return;
-
-                setState(() => isLoading = false);
-
-                if (success) {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        pub == null
-                            ? 'Pub created successfully!'
-                            : 'Pub updated successfully!',
-                      ),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        pubProvider.error ?? 'Operation failed. Check console for details.',
-                      ),
-                      backgroundColor: Colors.red,
-                      duration: const Duration(seconds: 5),
-                    ),
-                  );
-                }
-              },
-              child: Text(pub == null ? 'Create' : 'Update'),
-            ),
-          ],
-        ),
-      ),
+      builder: (dialogContext) {
+        return _PubFormDialog(pub: pub);
+      },
     );
   }
+
+
+
 
   void _togglePubStatus(Pub pub) async {
     final pubProvider = Provider.of<PubProvider>(context, listen: false);
