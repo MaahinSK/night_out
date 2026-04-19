@@ -1,31 +1,39 @@
 import 'package:flutter/foundation.dart';
 import '../models/user_model.dart';
+import '../models/pub_model.dart';
 import '../services/api_service.dart';
 import '../config/app_config.dart';
 
 class UserProvider with ChangeNotifier {
   final ApiService _apiService = ApiService();
 
-  List<dynamic> _favorites = [];
-  List<dynamic> _bookings = [];
+  List<Pub> _favoritePubs = [];
+  List<String> _favoriteIds = [];
   bool _isLoading = false;
+  String? _error;
 
-  List<dynamic> get favorites => _favorites;
-  List<dynamic> get bookings => _bookings;
+  List<Pub> get favoritePubs => _favoritePubs;
+  List<String> get favoriteIds => _favoriteIds;
   bool get isLoading => _isLoading;
+  String? get error => _error;
 
-  // Fetch user profile
-  Future<void> fetchProfile() async {
+  // Fetch favorites
+  Future<void> fetchFavorites() async {
     _setLoading(true);
+    _error = null;
+
     try {
-      final response = await _apiService.get(AppConfig.profileEndpoint);
+      final response = await _apiService.get(AppConfig.favoritesEndpoint);
+
       if (response['success'] == true) {
-        // Update user data
-        _favorites = response['user']['favorites'] ?? [];
+        final List<dynamic> favoritesJson = response['favorites'] ?? [];
+        _favoritePubs = favoritesJson.map((json) => Pub.fromJson(json)).toList();
+        _favoriteIds = _favoritePubs.map((pub) => pub.id).toList();
         notifyListeners();
       }
     } catch (e) {
-      debugPrint('Error fetching profile: $e');
+      _error = e.toString();
+      debugPrint('Error fetching favorites: $e');
     } finally {
       _setLoading(false);
     }
@@ -34,12 +42,18 @@ class UserProvider with ChangeNotifier {
   // Add to favorites
   Future<bool> addToFavorites(String pubId) async {
     try {
-      // This endpoint will be created later
-      // final response = await _apiService.post('/favorites/add', {'pubId': pubId});
-      _favorites.add(pubId);
-      notifyListeners();
-      return true;
+      final response = await _apiService.post(
+        '${AppConfig.favoritesEndpoint}/$pubId',
+        {},
+      );
+
+      if (response['success'] == true) {
+        await fetchFavorites();
+        return true;
+      }
+      return false;
     } catch (e) {
+      _error = e.toString();
       debugPrint('Error adding to favorites: $e');
       return false;
     }
@@ -48,19 +62,36 @@ class UserProvider with ChangeNotifier {
   // Remove from favorites
   Future<bool> removeFromFavorites(String pubId) async {
     try {
-      // This endpoint will be created later
-      // final response = await _apiService.delete('/favorites/remove/$pubId');
-      _favorites.remove(pubId);
-      notifyListeners();
-      return true;
+      final response = await _apiService.delete(
+        '${AppConfig.favoritesEndpoint}/$pubId',
+      );
+
+      if (response['success'] == true) {
+        _favoritePubs.removeWhere((pub) => pub.id == pubId);
+        _favoriteIds.remove(pubId);
+        notifyListeners();
+        return true;
+      }
+      return false;
     } catch (e) {
+      _error = e.toString();
       debugPrint('Error removing from favorites: $e');
       return false;
     }
   }
 
+  // Check if pub is favorite
+  bool isFavorite(String pubId) {
+    return _favoriteIds.contains(pubId);
+  }
+
   void _setLoading(bool value) {
     _isLoading = value;
+    notifyListeners();
+  }
+
+  void clearError() {
+    _error = null;
     notifyListeners();
   }
 }

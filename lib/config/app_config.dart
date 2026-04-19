@@ -6,11 +6,24 @@ class AppConfig {
 
   static const String apiPrefix = '/api';
 
-  // Endpoints
+  // Auth Endpoints
   static const String loginEndpoint = '/auth/login';
   static const String adminLoginEndpoint = '/auth/admin-login';
   static const String registerEndpoint = '/auth/register';
   static const String profileEndpoint = '/auth/profile';
+
+  // User Endpoints
+  static const String updateProfileEndpoint = '/users/profile';
+  static const String changePasswordEndpoint = '/users/change-password';
+  static const String favoritesEndpoint = '/users/favorites';
+  static const String userBookingsEndpoint = '/users/bookings';
+
+  // Pub Endpoints
+  static const String pubsEndpoint = '/pubs';
+
+  // Booking Endpoints
+  static const String bookingsEndpoint = '/bookings';
+  static const String adminBookingsEndpoint = '/bookings/admin/all';
 
   // Storage Keys
   static const String tokenKey = 'auth_token';

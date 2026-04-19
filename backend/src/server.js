@@ -11,6 +11,10 @@ connectDB();
 
 // Route files
 const authRoutes = require('./routes/authRoutes');
+const userRoutes = require('./routes/userRoutes');
+const pubRoutes = require('./routes/pubRoutes');
+const bookingRoutes = require('./routes/bookingRoutes');
+const eventRoutes = require('./routes/eventRoutes');
 
 const app = express();
 
@@ -22,6 +26,10 @@ app.use(cors());
 
 // Mount routers
 app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/pubs', pubRoutes);
+app.use('/api/bookings', bookingRoutes);
+app.use('/api/events', eventRoutes);
 
 // Health check route
 app.get('/', (req, res) => {
@@ -43,6 +51,5 @@ app.listen(PORT, '0.0.0.0', () => {
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (err, promise) => {
   console.log(`Error: ${err.message}`);
-  // Close server & exit process
   process.exit(1);
 });
