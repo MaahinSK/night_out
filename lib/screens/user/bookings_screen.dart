@@ -182,7 +182,10 @@ class _BookingsScreenState extends State<BookingsScreen>
                     color: Theme.of(context).primaryColor.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(Icons.nightlife, color: Theme.of(context).primaryColor),
+                  child: Icon(
+                    booking.bookingType == 'event' ? Icons.event : Icons.nightlife,
+                    color: Theme.of(context).primaryColor,
+                  ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -190,9 +193,16 @@ class _BookingsScreenState extends State<BookingsScreen>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        booking.pubName,
+                        booking.eventName ?? booking.pubName,
                         style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
+                      if (booking.eventName != null)
+                        Text(
+                          '@ ${booking.pubName}',
+                          style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                        ),
                       Text(
                         booking.bookingType.toUpperCase(),
                         style: TextStyle(color: Colors.grey[600], fontSize: 12, letterSpacing: 1),
@@ -356,6 +366,7 @@ class _BookingsScreenState extends State<BookingsScreen>
                     _buildTicketRow('Confirmation', booking.confirmationCode, isCode: true),
                     const Divider(height: 40),
                     _buildTicketRow('Venue', booking.pubName),
+                    if (booking.eventName != null) _buildTicketRow('Event', booking.eventName!),
                     _buildTicketRow('Type', booking.bookingType.toUpperCase()),
                     _buildTicketRow('Date', DateFormat('EEEE, MMMM d').format(booking.bookingDate)),
                     _buildTicketRow('Time', DateFormat('h:mm a').format(booking.bookingDate)),

@@ -20,6 +20,7 @@ class AppConfig {
 
   // Pub Endpoints
   static const String pubsEndpoint = '/pubs';
+  static const String eventsEndpoint = '/events';
 
   // Booking Endpoints
   static const String bookingsEndpoint = '/bookings';

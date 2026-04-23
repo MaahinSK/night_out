@@ -9,7 +9,7 @@ const bookingSchema = new mongoose.Schema({
   pub: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Pub',
-    required: true
+    required: false
   },
   event: {
     type: mongoose.Schema.Types.ObjectId,

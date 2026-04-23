@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/pub_provider.dart';
+import '../../providers/event_provider.dart';
 import '../../models/pub_model.dart';
+import '../../models/event_model.dart';
 import '../auth/login_screen.dart';
 import 'profile_screen.dart';
 import 'pub_detail_screen.dart';
+import 'event_detail_screen.dart';
 import 'favorites_screen.dart';
 import 'bookings_screen.dart';
 
@@ -30,8 +34,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _loadData() async {
     final pubProvider = context.read<PubProvider>();
+    final eventProvider = context.read<EventProvider>();
     await pubProvider.fetchPubs();
     await pubProvider.fetchPubs(featured: true);
+    await eventProvider.fetchEvents();
   }
 
   @override
@@ -98,15 +104,17 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildDiscoverTab() {
     final authProvider = Provider.of<AuthProvider>(context);
     final pubProvider = Provider.of<PubProvider>(context);
+    final eventProvider = Provider.of<EventProvider>(context);
 
     return Scaffold(
       backgroundColor: Colors.grey[50],
-      body: pubProvider.isLoading
+      body: (pubProvider.isLoading || eventProvider.isLoading)
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
               onRefresh: () async {
                 await pubProvider.fetchPubs();
                 await pubProvider.fetchPubs(featured: true);
+                await eventProvider.fetchEvents();
               },
               child: CustomScrollView(
                 slivers: [
@@ -144,6 +152,44 @@ class _HomeScreenState extends State<HomeScreen> {
                       ],
                     ),
                   ),
+
+                  // Upcoming Events
+                  if (eventProvider.events.isNotEmpty) ...[
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 32, 20, 16),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              '🎉 Upcoming Events',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: () {},
+                              child: const Text('See All'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    SliverToBoxAdapter(
+                      child: SizedBox(
+                        height: 220,
+                        child: ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          itemCount: eventProvider.events.length,
+                          itemBuilder: (context, index) {
+                            return _buildUserEventCard(eventProvider.events[index]);
+                          },
+                        ),
+                      ),
+                    ),
+                  ],
 
                   // Featured Section
                   if (pubProvider.featuredPubs.isNotEmpty) ...[
@@ -325,6 +371,65 @@ class _HomeScreenState extends State<HomeScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         elevation: 0,
         pressElevation: 2,
+      ),
+    );
+  }
+
+  Widget _buildUserEventCard(EventModel event) {
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => EventDetailScreen(event: event)),
+      ),
+      child: Container(
+        width: 180,
+        margin: const EdgeInsets.only(right: 16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ClipRRect(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+              child: Container(
+                height: 100,
+                width: double.infinity,
+                color: Colors.grey[200],
+                child: event.primaryImage.isNotEmpty
+                    ? Image.network(event.primaryImage, fit: BoxFit.cover)
+                    : const Icon(Icons.event, color: Colors.grey),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(event.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      const Icon(Icons.calendar_today, size: 10, color: Colors.grey),
+                      const SizedBox(width: 4),
+                      Text(
+                        DateFormat('MMM d').format(event.date),
+                        style: const TextStyle(fontSize: 10, color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '\$${event.ticketTypes.isNotEmpty ? event.ticketTypes.first.price.toInt() : 0}',
+                    style: TextStyle(color: Theme.of(context).primaryColor, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

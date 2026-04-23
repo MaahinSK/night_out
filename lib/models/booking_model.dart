@@ -12,6 +12,7 @@ class Booking {
   final String confirmationCode;
   final String userName;
   final String pubName;
+  final String? eventName;
   final DateTime createdAt;
 
   Booking({
@@ -28,6 +29,7 @@ class Booking {
     required this.confirmationCode,
     required this.userName,
     required this.pubName,
+    this.eventName,
     required this.createdAt,
   });
 
@@ -36,7 +38,7 @@ class Booking {
       id: json['_id'] ?? '',
       userId: json['user'] is Map ? json['user']['_id'] ?? '' : json['user'] ?? '',
       pubId: json['pub'] is Map ? json['pub']['_id'] ?? '' : json['pub'] ?? '',
-      eventId: json['event'],
+      eventId: json['event'] is Map ? json['event']['_id'] : json['event'],
       bookingType: json['bookingType'] ?? 'entry',
       bookingDate: DateTime.parse(json['bookingDate'] ?? DateTime.now().toIso8601String()),
       numberOfPeople: json['numberOfPeople'] ?? 1,
@@ -46,6 +48,7 @@ class Booking {
       confirmationCode: json['confirmationCode'] ?? '',
       userName: json['user'] is Map ? json['user']['name'] ?? 'User' : 'User',
       pubName: json['pub'] is Map ? json['pub']['name'] ?? 'Pub' : 'Pub',
+      eventName: json['event'] is Map ? json['event']['name'] : null,
       createdAt: DateTime.parse(json['createdAt'] ?? DateTime.now().toIso8601String()),
     );
   }

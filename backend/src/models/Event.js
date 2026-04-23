@@ -13,12 +13,12 @@ const eventSchema = new mongoose.Schema({
   pub: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Pub',
-    required: true
+    required: false
   },
   eventType: {
     type: String,
-    enum: ['live-music', 'dj-night', 'theme-party', 'special-event', 'happy-hour'],
-    default: 'dj-night'
+    enum: ['Concert', 'Fest', 'Rave', 'Club Night', 'Other'],
+    default: 'Concert'
   },
   date: {
     type: Date,

@@ -6,17 +6,34 @@ const Pub = require('../models/Pub');
 // @access  Private
 const createBooking = async (req, res) => {
   try {
-    const { pubId, eventId, bookingType, bookingDate, numberOfPeople, specialRequests, tableDetails, totalAmount } = req.body;
+    const { 
+      pubId, 
+      pub,
+      eventId, 
+      event,
+      bookingType, 
+      bookingDate, 
+      numberOfPeople, 
+      specialRequests, 
+      tableDetails, 
+      ticketDetails,
+      totalAmount 
+    } = req.body;
 
     const booking = await Booking.create({
       user: req.user.id,
-      pub: pubId,
-      event: eventId,
+      pub: (pubId && pubId !== '') ? pubId : ((pub && pub !== '') ? pub : undefined),
+      event: (eventId && eventId !== '') ? eventId : ((event && event !== '') ? event : undefined),
       bookingType,
       bookingDate,
       numberOfPeople,
       specialRequests,
       tableDetails,
+      ticketDetails: ticketDetails ? {
+        ticketType: ticketDetails.name || ticketDetails.ticketType,
+        pricePerTicket: ticketDetails.price || ticketDetails.pricePerTicket,
+        quantity: ticketDetails.quantity
+      } : undefined,
       totalAmount
     });
 

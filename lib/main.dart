@@ -4,6 +4,7 @@ import 'providers/auth_provider.dart';
 import 'providers/pub_provider.dart';
 import 'providers/user_provider.dart';
 import 'providers/booking_provider.dart';
+import 'providers/event_provider.dart';
 import 'screens/splash_screen.dart';
 
 void main() {
@@ -21,6 +22,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => PubProvider()),
         ChangeNotifierProvider(create: (_) => UserProvider()),
         ChangeNotifierProvider(create: (_) => BookingProvider()),
+        ChangeNotifierProvider(create: (_) => EventProvider()),
       ],
       child: MaterialApp(
         title: 'Night Out',

@@ -164,7 +164,7 @@ class _ManageBookingsScreenState extends State<ManageBookingsScreen> {
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(booking.pubName),
+            Text(booking.eventName != null ? '${booking.eventName} @ ${booking.pubName}' : booking.pubName),
             const SizedBox(height: 4),
             Row(
               children: [
