@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../providers/pub_provider.dart';
 import '../../providers/user_provider.dart';
 import '../../models/pub_model.dart';
+import '../../providers/booking_provider.dart';
 import '../../services/api_service.dart'; // Add this import
 import '../../config/app_config.dart';
 
@@ -1038,14 +1039,36 @@ class _BookingBottomSheetState extends State<BookingBottomSheet> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Booking confirmed!'),
-                    backgroundColor: Colors.green,
-                  ),
-                );
-                Navigator.pop(context);
+              onPressed: () async {
+                final bookingData = {
+                  'pubId': widget.pub.id,
+                  'bookingType': _bookingType,
+                  'bookingDate': _selectedDate.toIso8601String(),
+                  'numberOfPeople': _numberOfPeople,
+                  'totalAmount': widget.pub.pricing.entryFee * _numberOfPeople,
+                };
+                
+                final bookingProvider = Provider.of<BookingProvider>(context, listen: false);
+                final success = await bookingProvider.createBooking(bookingData);
+                
+                if (!mounted) return;
+                
+                if (success) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Booking confirmed!'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                  Navigator.pop(context);
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(bookingProvider.error ?? 'Failed to create booking'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
               },
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
@@ -1232,14 +1255,47 @@ class _TableBookingBottomSheetState extends State<TableBookingBottomSheet> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Table booked successfully!'),
-                    backgroundColor: Colors.green,
-                  ),
+              onPressed: () async {
+                final bookingDate = DateTime(
+                  _selectedDate.year,
+                  _selectedDate.month,
+                  _selectedDate.day,
+                  _selectedTime.hour,
+                  _selectedTime.minute,
                 );
-                Navigator.pop(context);
+                
+                final bookingData = {
+                  'pubId': widget.pub.id,
+                  'bookingType': 'table',
+                  'tableDetails': {
+                    'tableNumber': widget.table.tableNumber,
+                  },
+                  'bookingDate': bookingDate.toIso8601String(),
+                  'numberOfPeople': widget.table.capacity,
+                  'totalAmount': widget.table.minimumSpend,
+                };
+                
+                final bookingProvider = Provider.of<BookingProvider>(context, listen: false);
+                final success = await bookingProvider.createBooking(bookingData);
+                
+                if (!mounted) return;
+                
+                if (success) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Table booked successfully!'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                  Navigator.pop(context);
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(bookingProvider.error ?? 'Failed to book table'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
               },
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),

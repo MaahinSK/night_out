@@ -6,7 +6,7 @@ const Pub = require('../models/Pub');
 // @access  Private
 const createBooking = async (req, res) => {
   try {
-    const { pubId, eventId, bookingType, bookingDate, numberOfPeople, specialRequests } = req.body;
+    const { pubId, eventId, bookingType, bookingDate, numberOfPeople, specialRequests, tableDetails, totalAmount } = req.body;
 
     const booking = await Booking.create({
       user: req.user.id,
@@ -15,7 +15,9 @@ const createBooking = async (req, res) => {
       bookingType,
       bookingDate,
       numberOfPeople,
-      specialRequests
+      specialRequests,
+      tableDetails,
+      totalAmount
     });
 
     res.status(201).json({
@@ -50,22 +52,28 @@ const getAllBookings = async (req, res) => {
   }
 };
 
-// @desc    Update booking status (Admin only)
+// @desc    Update booking status
 // @route   PUT /api/bookings/:id/status
-// @access  Private/Admin
+// @access  Private
 const updateBookingStatus = async (req, res) => {
   try {
     const { status } = req.body;
 
-    const booking = await Booking.findByIdAndUpdate(
-      req.params.id,
-      { status },
-      { new: true }
-    );
+    const booking = await Booking.findById(req.params.id);
 
     if (!booking) {
       return res.status(404).json({ message: 'Booking not found' });
     }
+
+    // Check permissions: Admin can do anything, User can only cancel their own booking
+    if (req.user.role !== 'admin') {
+      if (booking.user.toString() !== req.user.id || status !== 'cancelled') {
+        return res.status(403).json({ message: 'Not authorized to perform this action' });
+      }
+    }
+
+    booking.status = status;
+    await booking.save();
 
     res.json({
       success: true,
@@ -77,8 +85,32 @@ const updateBookingStatus = async (req, res) => {
   }
 };
 
+// @desc    Delete booking (Admin only)
+// @route   DELETE /api/bookings/:id
+// @access  Private/Admin
+const deleteBooking = async (req, res) => {
+  try {
+    const booking = await Booking.findById(req.params.id);
+
+    if (!booking) {
+      return res.status(404).json({ message: 'Booking not found' });
+    }
+
+    await booking.deleteOne();
+
+    res.json({
+      success: true,
+      message: 'Booking removed'
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
 module.exports = {
   createBooking,
   getAllBookings,
-  updateBookingStatus
+  updateBookingStatus,
+  deleteBooking
 };

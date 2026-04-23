@@ -644,8 +644,10 @@ class _ManagePubsScreenState extends State<ManagePubsScreen> {
                 const SizedBox(height: 16),
 
                 // Action Buttons
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  alignment: WrapAlignment.center,
                   children: [
                     ElevatedButton.icon(
                       onPressed: () => _showPubDialog(pub: pub),

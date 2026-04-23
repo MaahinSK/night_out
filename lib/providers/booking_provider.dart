@@ -145,6 +145,27 @@ class BookingProvider with ChangeNotifier {
     }
   }
 
+  // Delete booking (Admin only)
+  Future<bool> deleteBooking(String id) async {
+    _setLoading(true);
+    _error = null;
+
+    try {
+      final response = await _apiService.delete('${AppConfig.bookingsEndpoint}/$id');
+
+      if (response['success'] == true) {
+        await fetchAllBookings();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      _error = e.toString();
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
   void _setLoading(bool value) {
     _isLoading = value;
     notifyListeners();

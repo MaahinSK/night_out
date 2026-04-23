@@ -37,83 +37,18 @@ class _AdminDashboardState extends State<AdminDashboard> {
       _buildSettingsTab(),
     ];
 
-    return Scaffold(
-      body: Row(
-        children: [
-          // Sidebar Navigation
-          NavigationRail(
-            selectedIndex: _selectedIndex,
-            onDestinationSelected: (index) {
-              setState(() => _selectedIndex = index);
-            },
-            labelType: NavigationRailLabelType.all,
-            leading: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  Icon(
-                    Icons.admin_panel_settings,
-                    size: 32,
-                    color: Theme.of(context).primaryColor,
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Admin Panel',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            destinations: const [
-              NavigationRailDestination(
-                icon: Icon(Icons.dashboard_outlined),
-                selectedIcon: Icon(Icons.dashboard),
-                label: Text('Overview'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.nightlife_outlined),
-                selectedIcon: Icon(Icons.nightlife),
-                label: Text('Pubs'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.event_outlined),
-                selectedIcon: Icon(Icons.event),
-                label: Text('Events'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.book_online_outlined),
-                selectedIcon: Icon(Icons.book_online),
-                label: Text('Bookings'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.settings_outlined),
-                selectedIcon: Icon(Icons.settings),
-                label: Text('Settings'),
-              ),
-            ],
-          ),
-
-          const VerticalDivider(thickness: 1, width: 1),
-
-          // Main Content
-          Expanded(
-            child: screens[_selectedIndex],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildOverviewTab() {
+    bool isMobile = MediaQuery.of(context).size.width < 800;
     final authProvider = Provider.of<AuthProvider>(context);
-    final pubProvider = Provider.of<PubProvider>(context);
-    final bookingProvider = Provider.of<BookingProvider>(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Admin Dashboard'),
+        title: Text(isMobile ? 'Admin Panel' : 'Admin Dashboard'),
+        leading: isMobile ? Builder(
+          builder: (context) => IconButton(
+            icon: const Icon(Icons.menu),
+            onPressed: () => Scaffold.of(context).openDrawer(),
+          ),
+        ) : null,
         actions: [
           IconButton(
             icon: const Icon(Icons.notifications_outlined),
@@ -149,63 +84,181 @@ class _AdminDashboardState extends State<AdminDashboard> {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+      drawer: isMobile ? Drawer(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Welcome Header
-            Text(
-              'Welcome back, ${authProvider.user?.name ?? 'Admin'}!',
-              style: Theme.of(context).textTheme.headlineSmall,
+            DrawerHeader(
+              decoration: BoxDecoration(color: Theme.of(context).primaryColor),
+              child: const Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.admin_panel_settings, size: 48, color: Colors.white),
+                    SizedBox(height: 8),
+                    Text('Admin Panel', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+              ),
             ),
-            const SizedBox(height: 8),
-            Text(
-              'Here\'s what\'s happening with your venues today.',
-              style: TextStyle(color: Colors.grey[600]),
-            ),
-            const SizedBox(height: 32),
-
-            // Stats Cards
-            GridView.count(
-              shrinkWrap: true,
-              crossAxisCount: 4,
-              crossAxisSpacing: 16,
-              mainAxisSpacing: 16,
-              childAspectRatio: 1.5,
-              children: [
-                _buildStatCard(
-                  'Total Pubs',
-                  pubProvider.pubs.length.toString(),
-                  Icons.nightlife,
-                  Colors.blue,
-                  '+2 this month',
+            _buildDrawerItem(0, Icons.dashboard, 'Overview'),
+            _buildDrawerItem(1, Icons.nightlife, 'Pubs'),
+            _buildDrawerItem(2, Icons.event, 'Events'),
+            _buildDrawerItem(3, Icons.book_online, 'Bookings'),
+            _buildDrawerItem(4, Icons.settings, 'Settings'),
+          ],
+        ),
+      ) : null,
+      body: Row(
+        children: [
+          // Sidebar Navigation (Only for desktop/large screens)
+          if (!isMobile)
+            NavigationRail(
+              selectedIndex: _selectedIndex,
+              onDestinationSelected: (index) {
+                setState(() => _selectedIndex = index);
+              },
+              labelType: NavigationRailLabelType.all,
+              leading: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.admin_panel_settings,
+                      size: 32,
+                      color: Theme.of(context).primaryColor,
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Admin Panel',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
                 ),
-                _buildStatCard(
-                  'Active Bookings',
-                  bookingProvider.allBookings
-                      .where((b) => b.status == 'confirmed')
-                      .length
-                      .toString(),
-                  Icons.book_online,
-                  Colors.green,
-                  'Today: 12',
+              ),
+              destinations: const [
+                NavigationRailDestination(
+                  icon: Icon(Icons.dashboard_outlined),
+                  selectedIcon: Icon(Icons.dashboard),
+                  label: Text('Overview'),
                 ),
-                _buildStatCard(
-                  'Total Revenue',
-                  '\$${_calculateTotalRevenue(bookingProvider)}',
-                  Icons.attach_money,
-                  Colors.purple,
-                  '+15% vs last month',
+                NavigationRailDestination(
+                  icon: Icon(Icons.nightlife_outlined),
+                  selectedIcon: Icon(Icons.nightlife),
+                  label: Text('Pubs'),
                 ),
-                _buildStatCard(
-                  'Avg Occupancy',
-                  '${_calculateAvgOccupancy(pubProvider)}%',
-                  Icons.people,
-                  Colors.orange,
-                  'Peak: 85%',
+                NavigationRailDestination(
+                  icon: Icon(Icons.event_outlined),
+                  selectedIcon: Icon(Icons.event),
+                  label: Text('Events'),
+                ),
+                NavigationRailDestination(
+                  icon: Icon(Icons.book_online_outlined),
+                  selectedIcon: Icon(Icons.book_online),
+                  label: Text('Bookings'),
+                ),
+                NavigationRailDestination(
+                  icon: Icon(Icons.settings_outlined),
+                  selectedIcon: Icon(Icons.settings),
+                  label: Text('Settings'),
                 ),
               ],
+            ),
+
+          if (!isMobile) const VerticalDivider(thickness: 1, width: 1),
+
+          // Main Content
+          Expanded(
+            child: screens[_selectedIndex],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDrawerItem(int index, IconData icon, String label) {
+    return ListTile(
+      leading: Icon(icon, color: _selectedIndex == index ? Theme.of(context).primaryColor : null),
+      title: Text(label, style: TextStyle(color: _selectedIndex == index ? Theme.of(context).primaryColor : null)),
+      selected: _selectedIndex == index,
+      onTap: () {
+        setState(() => _selectedIndex = index);
+        Navigator.pop(context);
+      },
+    );
+  }
+
+  Widget _buildOverviewTab() {
+    final pubProvider = Provider.of<PubProvider>(context);
+    final bookingProvider = Provider.of<BookingProvider>(context);
+    final authProvider = Provider.of<AuthProvider>(context);
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Welcome Header
+          Text(
+            'Welcome back, ${authProvider.user?.name ?? 'Admin'}!',
+            style: Theme.of(context).textTheme.headlineSmall,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Here\'s what\'s happening with your venues today.',
+            style: TextStyle(color: Colors.grey[600]),
+          ),
+          const SizedBox(height: 32),
+
+          // Stats Cards
+          LayoutBuilder(
+            builder: (context, constraints) {
+              int crossAxisCount = constraints.maxWidth > 1200 ? 4 : constraints.maxWidth > 800 ? 2 : 1;
+              double childAspectRatio = constraints.maxWidth > 1200 ? 1.5 : constraints.maxWidth > 800 ? 2.0 : 2.0;
+              
+              return GridView.count(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  crossAxisCount: crossAxisCount,
+                  crossAxisSpacing: 16,
+                  mainAxisSpacing: 16,
+                  childAspectRatio: childAspectRatio,
+                  children: [
+                    _buildStatCard(
+                      'Total Pubs',
+                      pubProvider.pubs.length.toString(),
+                      Icons.nightlife,
+                      Colors.blue,
+                      '+2 this month',
+                    ),
+                    _buildStatCard(
+                      'Active Bookings',
+                      bookingProvider.allBookings
+                          .where((b) => b.status == 'confirmed')
+                          .length
+                          .toString(),
+                      Icons.book_online,
+                      Colors.green,
+                      'Today: 12',
+                    ),
+                    _buildStatCard(
+                      'Total Revenue',
+                      '\$${_calculateTotalRevenue(bookingProvider)}',
+                      Icons.attach_money,
+                      Colors.purple,
+                      '+15% vs last month',
+                    ),
+                    _buildStatCard(
+                      'Avg Occupancy',
+                      '${_calculateAvgOccupancy(pubProvider)}%',
+                      Icons.people,
+                      Colors.orange,
+                      'Peak: 85%',
+                    ),
+                  ],
+                );
+              },
             ),
             const SizedBox(height: 32),
 
@@ -277,8 +330,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
             ),
           ],
         ),
-      ),
-    );
+      );
   }
 
   Widget _buildStatCard(String title, String value, IconData icon, Color color, String subtitle) {
@@ -388,23 +440,25 @@ class _AdminDashboardState extends State<AdminDashboard> {
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
         child: Container(
-          width: 200,
-          padding: const EdgeInsets.all(20),
+          width: 160,
+          padding: const EdgeInsets.all(16),
           child: Column(
             children: [
               Container(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: color.withOpacity(0.1),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(icon, color: color, size: 32),
+                child: Icon(icon, color: color, size: 28),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
               Text(
                 title,
+                textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
+                  fontSize: 13,
                 ),
               ),
             ],

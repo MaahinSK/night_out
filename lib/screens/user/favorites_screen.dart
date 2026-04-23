@@ -26,25 +26,28 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     final userProvider = Provider.of<UserProvider>(context);
 
     return Scaffold(
+      backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: const Text('My Favorites'),
+        title: const Text('My Favorites', style: TextStyle(fontWeight: FontWeight.bold)),
         elevation: 0,
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
       ),
       body: userProvider.isLoading
           ? const Center(child: CircularProgressIndicator())
           : userProvider.favoritePubs.isEmpty
-          ? _buildEmptyState()
-          : RefreshIndicator(
-        onRefresh: () => userProvider.fetchFavorites(),
-        child: ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: userProvider.favoritePubs.length,
-          itemBuilder: (context, index) {
-            final pub = userProvider.favoritePubs[index];
-            return _buildFavoriteCard(pub);
-          },
-        ),
-      ),
+              ? _buildEmptyState()
+              : RefreshIndicator(
+                  onRefresh: () => userProvider.fetchFavorites(),
+                  child: ListView.builder(
+                    padding: const EdgeInsets.all(20),
+                    itemCount: userProvider.favoritePubs.length,
+                    itemBuilder: (context, index) {
+                      final pub = userProvider.favoritePubs[index];
+                      return _buildPremiumFavoriteCard(pub);
+                    },
+                  ),
+                ),
     );
   }
 
@@ -53,38 +56,40 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.favorite_border,
-            size: 80,
-            color: Colors.grey[400],
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'No favorites yet',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              color: Colors.grey[600],
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.red[50],
+              shape: BoxShape.circle,
             ),
+            child: Icon(Icons.favorite_border, size: 64, color: Colors.red[200]),
+          ),
+          const SizedBox(height: 24),
+          const Text(
+            'No favorites yet',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           Text(
-            'Tap the heart icon on any pub to save it here',
-            style: TextStyle(color: Colors.grey[500]),
+            'Save your favorite spots for later!',
+            style: TextStyle(color: Colors.grey[600]),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 32),
           ElevatedButton.icon(
-            onPressed: () {
-              // Navigate to discover tab
-              Navigator.pop(context);
-            },
+            onPressed: () => Navigator.pop(context),
             icon: const Icon(Icons.explore),
-            label: const Text('Discover Pubs'),
+            label: const Text('Discover Now'),
+            style: ElevatedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildFavoriteCard(Pub pub) {
+  Widget _buildPremiumFavoriteCard(Pub pub) {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
 
     return Dismissible(
@@ -93,14 +98,16 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
       background: Container(
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 20),
-        color: Colors.red,
-        child: const Icon(
-          Icons.delete_outline,
-          color: Colors.white,
+        margin: const EdgeInsets.only(bottom: 20),
+        decoration: BoxDecoration(
+          color: Colors.red,
+          borderRadius: BorderRadius.circular(20),
         ),
+        child: const Icon(Icons.delete_outline, color: Colors.white, size: 28),
       ),
       onDismissed: (direction) async {
         await userProvider.removeFromFavorites(pub.id);
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('${pub.name} removed from favorites'),
@@ -113,65 +120,60 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
           ),
         );
       },
-      child: Card(
-        margin: const EdgeInsets.only(bottom: 16),
-        clipBehavior: Clip.antiAlias,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
         child: InkWell(
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => PubDetailScreen(pubId: pub.id),
-              ),
-            );
-          },
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => PubDetailScreen(pubId: pub.id)),
+          ),
+          borderRadius: BorderRadius.circular(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Stack(
                 children: [
-                  Container(
-                    height: 150,
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      image: pub.primaryImage.isNotEmpty
-                          ? DecorationImage(
-                        image: NetworkImage(pub.primaryImage),
-                        fit: BoxFit.cover,
-                      )
-                          : null,
-                      color: Colors.grey[300],
+                  ClipRRect(
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                    child: Container(
+                      height: 160,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        image: pub.primaryImage.isNotEmpty
+                            ? DecorationImage(image: NetworkImage(pub.primaryImage), fit: BoxFit.cover)
+                            : null,
+                        color: Colors.grey[200],
+                      ),
+                      child: pub.primaryImage.isEmpty ? const Icon(Icons.nightlife, size: 48, color: Colors.grey) : null,
                     ),
-                    child: pub.primaryImage.isEmpty
-                        ? const Icon(Icons.nightlife, size: 50)
-                        : null,
                   ),
                   Positioned(
-                    top: 8,
-                    right: 8,
+                    top: 12,
+                    right: 12,
                     child: Container(
                       padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
+                      decoration: const BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            blurRadius: 4,
-                          ),
-                        ],
+                        shape: BoxShape.circle,
                       ),
-                      child: const Icon(
-                        Icons.favorite,
-                        color: Colors.red,
-                        size: 20,
-                      ),
+                      child: const Icon(Icons.favorite, color: Colors.red, size: 18),
                     ),
                   ),
                 ],
               ),
               Padding(
-                padding: const EdgeInsets.all(16.0),
+                padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -180,28 +182,22 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                         Expanded(
                           child: Text(
                             pub.name,
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
+                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                           ),
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: Colors.green[50],
-                            borderRadius: BorderRadius.circular(12),
+                            color: Colors.amber[50],
+                            borderRadius: BorderRadius.circular(8),
                           ),
                           child: Row(
                             children: [
-                              Icon(Icons.star, size: 14, color: Colors.amber[600]),
+                              Icon(Icons.star, color: Colors.amber[700], size: 14),
                               const SizedBox(width: 4),
                               Text(
                                 pub.ratings.average.toStringAsFixed(1),
-                                style: const TextStyle(fontSize: 12),
+                                style: TextStyle(color: Colors.amber[900], fontSize: 12, fontWeight: FontWeight.bold),
                               ),
                             ],
                           ),
@@ -211,59 +207,36 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        Icon(Icons.location_on, size: 16, color: Colors.grey[600]),
+                        const Icon(Icons.location_on, color: Colors.grey, size: 14),
                         const SizedBox(width: 4),
                         Expanded(
                           child: Text(
                             pub.address.fullAddress,
-                            style: TextStyle(
-                              color: Colors.grey[600],
-                              fontSize: 14,
-                            ),
+                            style: TextStyle(color: Colors.grey[600], fontSize: 13),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 16),
                     Row(
                       children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
-                            color: pub.capacity.occupancyRate > 80
-                                ? Colors.orange[50]
-                                : Colors.green[50],
-                            borderRadius: BorderRadius.circular(12),
+                            color: Colors.blue[50],
+                            borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
-                            '${pub.capacity.available} spots left',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: pub.capacity.occupancyRate > 80
-                                  ? Colors.orange[700]
-                                  : Colors.green[700],
-                            ),
+                            pub.musicGenre.isNotEmpty ? pub.musicGenre.first : 'Various Music',
+                            style: TextStyle(color: Colors.blue[700], fontSize: 11, fontWeight: FontWeight.bold),
                           ),
                         ),
                         const Spacer(),
-                        ElevatedButton(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => PubDetailScreen(pubId: pub.id),
-                              ),
-                            );
-                          },
-                          style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                          ),
-                          child: const Text('View Details'),
+                        Text(
+                          'Entry: \$${pub.pricing.entryFee.toStringAsFixed(0)}',
+                          style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                       ],
                     ),

@@ -62,11 +62,10 @@ const bookingSchema = new mongoose.Schema({
 });
 
 // Generate confirmation code before saving
-bookingSchema.pre('save', function(next) {
+bookingSchema.pre('save', function() {
   if (!this.confirmationCode) {
     this.confirmationCode = 'NO' + Date.now().toString().slice(-8) + Math.floor(Math.random() * 1000);
   }
-  next();
 });
 
 const Booking = mongoose.model('Booking', bookingSchema);
