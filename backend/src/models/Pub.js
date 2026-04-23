@@ -10,6 +10,10 @@ const pubSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
+  category: {
+    type: [String],
+    default: ['Bar']
+  },
   address: {
     street: { type: String, default: '' },
     city: { type: String, default: '' },

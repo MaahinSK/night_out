@@ -9,6 +9,7 @@ class Pub {
   final OpeningHours openingHours;
   final List<String> amenities;
   final List<String> musicGenre;
+  final List<String> category;
   final String? dressCode;
   final int ageRestriction;
   final Pricing pricing;
@@ -30,6 +31,7 @@ class Pub {
     required this.openingHours,
     required this.amenities,
     required this.musicGenre,
+    required this.category,
     this.dressCode,
     required this.ageRestriction,
     required this.pricing,
@@ -53,6 +55,7 @@ class Pub {
       openingHours: OpeningHours.fromJson(json['openingHours'] ?? {}),
       amenities: List<String>.from(json['amenities'] ?? []),
       musicGenre: List<String>.from(json['musicGenre'] ?? []),
+      category: List<String>.from(json['category'] ?? []),
       dressCode: json['dressCode'],
       ageRestriction: json['ageRestriction'] ?? 18,
       pricing: Pricing.fromJson(json['pricing'] ?? {}),
